@@ -1,4 +1,4 @@
-﻿# app.py（抜粋）
+﻿# app.py
 # -*- coding: utf-8 -*-
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
@@ -7,12 +7,13 @@ from linebot.models import (MessageEvent, TextMessage, TextSendMessage,
                             PostbackEvent, PostbackAction,
                             TemplateSendMessage, ButtonsTemplate, StickerMessage)
 
+# ← ここで自作ライブラリをimport
 from linestate.session import with_session, new_pending_id, guard_postback
 
 app = Flask(__name__)
 
-LINE_CHANNEL_ACCESS_TOKEN = "Lz8pLDVenpyNTFB0wx3HF8GMQYdsB58T9s82W7f9iO0VO7BheRuOMZON92Yr5l9GUikRJIPZBwmJwCCGLOVovgEK2ta+hX/YWlHcfFS8xSJ7HTRjvhm6S4mA/xcsbLYJ5sv8Ek+tX+mLeR+QYoqyVwdB04t89/1O/w1cDnyilFU="
-LINE_CHANNEL_SECRET = "a4e8c0c832d864a32d06acc0354e8fd3"
+LINE_CHANNEL_ACCESS_TOKEN = "YOUR_ACCESS_TOKEN"
+LINE_CHANNEL_SECRET = "YOUR_SECRET"
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
@@ -42,9 +43,10 @@ def callback():
         abort(400)
     return 'OK'
 
+# ---------- テキスト ----------
 @handler.add(MessageEvent, message=TextMessage)
 @with_session
-def on_text(user_id, sess, event):
+def on_text(sess, event):   # ← user_id を受け取らないように修正
     text = event.message.text.strip()
 
     # 初期化
@@ -87,18 +89,19 @@ def on_text(user_id, sess, event):
         )
     )
 
+# ---------- スタンプ ----------
 @handler.add(MessageEvent, message=StickerMessage)
 @with_session
-def on_sticker(user_id, sess, event):
+def on_sticker(sess, event):
     if sess.get("pending_id"):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="確認中はスタンプは無効です。Yes/Noを選択してください。"))
     else:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="スタンプは未対応です。テキストで入力してください。"))
 
+# ---------- ポストバック ----------
 @handler.add(PostbackEvent)
 @with_session
-def on_postback(user_id, sess, event):
-    # data パース
+def on_postback(sess, event):
     parsed = {}
     for item in event.postback.data.split("&"):
         if "=" in item:
