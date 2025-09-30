@@ -46,7 +46,7 @@ def callback():
 # ---------- テキスト ----------
 @handler.add(MessageEvent, message=TextMessage)
 @with_session
-def on_text(sess, event):   # ← user_id を受け取らないように修正
+def on_text(user_id, sess, event, _dest=None):
     text = event.message.text.strip()
 
     # 初期化
@@ -92,16 +92,23 @@ def on_text(sess, event):   # ← user_id を受け取らないように修正
 # ---------- スタンプ ----------
 @handler.add(MessageEvent, message=StickerMessage)
 @with_session
-def on_sticker(sess, event):
+def on_sticker(user_id, sess, event, _dest=None):
     if sess.get("pending_id"):
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="確認中はスタンプは無効です。Yes/Noを選択してください。"))
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="確認中はスタンプは無効です。Yes/Noを選択してください。")
+        )
     else:
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="スタンプは未対応です。テキストで入力してください。"))
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="スタンプは未対応です。テキストで入力してください。")
+        )
+
 
 # ---------- ポストバック ----------
 @handler.add(PostbackEvent)
 @with_session
-def on_postback(sess, event):
+def on_postback(user_id, sess, event, _dest=None):
     parsed = {}
     for item in event.postback.data.split("&"):
         if "=" in item:
@@ -141,6 +148,7 @@ def on_postback(sess, event):
         sess["prompted"] = False
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="もう一度入力してください。"))
         prompt(event.reply_token, cur)
+
 
 if __name__ == "__main__":
     import os
