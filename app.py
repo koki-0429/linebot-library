@@ -7,7 +7,7 @@ from linebot.models import (MessageEvent, TextMessage, TextSendMessage,
                             PostbackEvent, PostbackAction,
                             TemplateSendMessage, ButtonsTemplate, StickerMessage)
 
-from linestate import with_session, new_pending_id, guard_postback
+from linestate.session import with_session, new_pending_id, guard_postback
 
 app = Flask(__name__)
 
