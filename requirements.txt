@@ -2,3 +2,4 @@
 line-bot-sdk==2.4.2
 gunicorn==21.2.0
 redis==5.0.8        # 本番で Redis を使うなら
+psycopg2-binary==2.9.9
