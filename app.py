@@ -11,6 +11,41 @@ from linebot.models import (
 # ← 自作ライブラリをインポート
 from linestate.session import with_session, new_pending_id, guard_postback
 
+import os
+import psycopg2
+
+def _get_db_url():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url and "sslmode=" not in db_url:
+        db_url = f"{db_url}?sslmode=require"
+    return db_url
+
+def save_registration_to_db(user_id, v):
+    """確定データ（名前・住所・電話番号）を登録"""
+    db_url = _get_db_url()
+    if not db_url:
+        return
+    con = psycopg2.connect(db_url)
+    try:
+        with con:
+            with con.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO registrations (user_id, name, address, phone)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (user_id)
+                    DO UPDATE SET
+                      name = EXCLUDED.name,
+                      address = EXCLUDED.address,
+                      phone = EXCLUDED.phone,
+                      updated_at = now()
+                    """,
+                    (user_id, v.get("name"), v.get("address"), v.get("phone"))
+                )
+    finally:
+        con.close()
+
+
 app = Flask(__name__)
 
 # ==== チャネル設定 ====
@@ -142,6 +177,9 @@ def on_postback(user_id, sess, event, _dest=None):
 
         if sess["i"] == len(FLOW) - 1:
             v = sess["vals"]
+
+            save_registration_to_db(user_id, v)
+
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=f"登録完了:\nお名前:{v.get('name')}\nご住所:{v.get('address')}\nお電話:{v.get('phone')}")
